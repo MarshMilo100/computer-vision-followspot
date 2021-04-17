@@ -102,7 +102,9 @@ void MainThread(void *argument);
 /* USER CODE BEGIN PFP */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+	HAL_UART_Receive_IT(&huart6, Rx_Data, 4);
 	HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3);
+	HAL_UART_Transmit(&huart6, Rx_Data, 4, 10);
 }
 /* USER CODE END PFP */
 
