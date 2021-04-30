@@ -1,0 +1,15 @@
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\bin\Debug\netcoreapp3.1\AIForm.exe
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\bin\Debug\netcoreapp3.1\AIForm.deps.json
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\bin\Debug\netcoreapp3.1\AIForm.runtimeconfig.json
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\bin\Debug\netcoreapp3.1\AIForm.runtimeconfig.dev.json
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\bin\Debug\netcoreapp3.1\AIForm.dll
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\bin\Debug\netcoreapp3.1\AIForm.pdb
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.csprojAssemblyReference.cache
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.Form1.resources
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.csproj.GenerateResource.cache
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.AssemblyInfoInputs.cache
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.AssemblyInfo.cs
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.csproj.CoreCompileInputs.cache
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.dll
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.pdb
+C:\Users\Nathan Perger\source\repos\AIForm\AIForm\obj\Debug\netcoreapp3.1\AIForm.genruntimeconfig.cache
