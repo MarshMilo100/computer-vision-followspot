@@ -21,6 +21,11 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "usb_host.h"
+#include <string.h>
+#include "strings.h"
+#include <vector>
+#include <cmath>
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -68,18 +73,34 @@ SRAM_HandleTypeDef hsram2;
 osThreadId_t blink01Handle;
 const osThreadAttr_t blink01_attributes = {
   .name = "blink01",
-  .priority = (osPriority_t) osPriorityNormal,
-  .stack_size = 128 * 4
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal
 };
 /* Definitions for mainThread */
 osThreadId_t mainThreadHandle;
 const osThreadAttr_t mainThread_attributes = {
   .name = "mainThread",
-  .priority = (osPriority_t) osPriorityLow,
-  .stack_size = 128 * 4
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityLow
+};
+struct Coordinate
+{
+    int width, height;
+};
+
+struct BoundaryBox
+{
+    int widthIndex, heightIndex;
+    int width, height;
 };
 /* USER CODE BEGIN PV */
-uint8_t Rx_Data[10];
+uint8_t Rx_Data[2];
+int pixelCount = 0;
+bool sendLocationReady = false;
+bool storeCoordinate = false;
+//Coordinate recievedCoordinates[2000];
+std::vector<struct Coordinate> recievedCoordinates;
+// uint8_t cameraData[2000];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,16 +121,106 @@ void DefaultThread(void *argument);
 void MainThread(void *argument);
 
 /* USER CODE BEGIN PFP */
+
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	HAL_UART_Receive_IT(&huart6, Rx_Data, 4);
-	HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3);
-	HAL_UART_Transmit(&huart6, Rx_Data, 4, 10);
+	// simplify this if block when the logic is sorted out
+	if(Rx_Data[0] == '-' && Rx_Data[1] == '2')
+	{
+		// begin to receive data
+		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+	}
+	else if(Rx_Data[0] == '\n' || Rx_Data[1] == '\n')
+	{
+		// received the end of the pixel data
+		if (!storeCoordinate)
+		{
+			sendLocationReady = true;
+		}
+		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+	}
+	else
+	{
+		// store pixel data
+		if (!sendLocationReady)
+		{
+			storeCoordinate = true;
+		}
+		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+	}
+
+	//HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
+	//HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3); // red LED
+
 }
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+// Calculates the BoundaryBox around the person based off the pixels read it
+struct BoundaryBox getSinglePersonLocation( std::vector<struct Coordinate>& whitePixels)
+{
+	struct BoundaryBox personBoundaryBox;
+
+    float widthAverage, widthStd = 0;
+    float heightAverage, heightStd = 0;
+    int length = whitePixels.size();
+
+    int widthSum = 0, heightSum = 0;
+
+	for(struct Coordinate pixel : whitePixels)
+	{
+		widthSum += pixel.width;
+		heightSum += pixel.height;
+	}
+
+    widthAverage = widthSum / length;
+    heightAverage = heightSum / length;
+
+	for(struct Coordinate pixel : whitePixels)
+	{
+		widthStd += (pixel.width - widthAverage) * (pixel.width - widthAverage);
+		heightStd += (pixel.height - heightAverage) * (pixel.height - heightAverage);
+	}
+
+    widthStd = widthStd * (1 / length - 1);
+    heightStd = heightStd * (1 / length - 1);
+
+    widthStd = pow(widthStd, 0.5);
+    heightStd = pow(heightStd, 0.5);
+
+    personBoundaryBox.widthIndex = widthAverage;
+    personBoundaryBox.heightIndex = heightAverage;
+    personBoundaryBox.width = widthStd * 1.5;
+    personBoundaryBox.height = heightStd * 1.5;
+
+    return personBoundaryBox;
+}
+
+// Gets the current location and sends it to the light board over UDP if it is different from the last location
+struct BoundaryBox sendLocation(struct BoundaryBox previousLocation)
+{
+	int len = recievedCoordinates.size();
+	BoundaryBox currentLocation = getSinglePersonLocation(recievedCoordinates);
+
+	int upperLeftHeight = previousLocation.heightIndex - (previousLocation.height / 2);
+	int uperLeftWidth = previousLocation.widthIndex - (previousLocation.width / 2);
+
+	int lowerRightHeight = previousLocation.heightIndex + (previousLocation.height / 2);
+	int lowerRightWidth = previousLocation.widthIndex + (previousLocation.width / 2);
+
+
+	if(!(currentLocation.heightIndex < lowerRightHeight && currentLocation.height > upperLeftHeight &&
+	   currentLocation.widthIndex < lowerRightWidth && currentLocation.widthIndex > uperLeftWidth))
+	{
+		// This is when we create new UDP light packets
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_SET);
+		osDelay(100);
+	}
+
+	return currentLocation;
+}
 
 /* USER CODE END 0 */
 
@@ -918,11 +1029,27 @@ void DefaultThread(void *argument)
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-  HAL_UART_Receive_IT(&huart6, Rx_Data, 4);
+  BoundaryBox previousLocation = BoundaryBox();	 // get a default boundary box to start
+  previousLocation.width = 0;
+  previousLocation.widthIndex = 0;
+  previousLocation.height = 0;
+  previousLocation.heightIndex = 0;
+  HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
   for(;;)
   {
-	HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_5);
-    osDelay(500);
+	if (sendLocationReady && !storeCoordinate)
+	{
+		previousLocation = sendLocation(previousLocation);
+		recievedCoordinates.clear();
+		//pixelCount = 0;	// not using this anymore?
+		sendLocationReady = false;
+	}
+	else
+	{
+		 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET);
+	}
+	osDelay(55);
+
   }
   /* USER CODE END 5 */
 }
@@ -937,11 +1064,27 @@ void DefaultThread(void *argument)
 void MainThread(void *argument)
 {
   /* USER CODE BEGIN MainThread */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(100);
-  }
+
+	/* Infinite loop */
+	for(;;)
+	{
+		if (storeCoordinate && !sendLocationReady)
+		{
+			struct Coordinate temp;
+			temp.height = Rx_Data[0];
+			temp.width = Rx_Data[1];
+			recievedCoordinates.push_back(temp);
+			//pixelCount++; // not using this anymore?
+			storeCoordinate = false;
+			HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);// Red LED
+		}
+		else
+		{
+			HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);// Red LED
+		}
+		//HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3); // Red LED
+		osDelay(10);
+	}
   /* USER CODE END MainThread */
 }
 
