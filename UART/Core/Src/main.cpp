@@ -25,7 +25,7 @@
 #include "strings.h"
 #include <vector>
 #include <cmath>
-
+#include <string>
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -73,7 +73,7 @@ SRAM_HandleTypeDef hsram2;
 osThreadId_t blink01Handle;
 const osThreadAttr_t blink01_attributes = {
   .name = "blink01",
-  .stack_size = 128 * 4,
+  .stack_size = 1028 * 4,
   .priority = (osPriority_t) osPriorityNormal
 };
 /* Definitions for mainThread */
@@ -83,6 +83,7 @@ const osThreadAttr_t mainThread_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow
 };
+
 struct Coordinate
 {
     int width, height;
@@ -93,8 +94,9 @@ struct BoundaryBox
     int widthIndex, heightIndex;
     int width, height;
 };
+
 /* USER CODE BEGIN PV */
-uint8_t Rx_Data[2];
+uint8_t Rx_Data[2000];
 int pixelCount = 0;
 bool sendLocationReady = false;
 bool storeCoordinate = false;
@@ -125,30 +127,46 @@ void MainThread(void *argument);
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-	// simplify this if block when the logic is sorted out
+
+
 	if(Rx_Data[0] == '-' && Rx_Data[1] == '2')
 	{
-		// begin to receive data
-		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
-	}
-	else if(Rx_Data[0] == '\n' || Rx_Data[1] == '\n')
-	{
-		// received the end of the pixel data
-		if (!storeCoordinate)
-		{
-			sendLocationReady = true;
-		}
-		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+		uint8_t byteArray1[4] = {  Rx_Data[2], Rx_Data[3], Rx_Data[4],  Rx_Data[5] };
+		std::string s(reinterpret_cast<char*>(byteArray1), 4);
+		int pixleMsgSize = std::stoi(s, nullptr, 0);
+		HAL_UART_Receive_IT(&huart6, Rx_Data, pixleMsgSize);
 	}
 	else
 	{
-		// store pixel data
-		if (!sendLocationReady)
-		{
-			storeCoordinate = true;
-		}
-		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+		sendLocationReady = true;
+		HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
 	}
+
+
+	// simplify this if block when the logic is sorted out
+//	if(Rx_Data[0] == '-' && Rx_Data[1] == '2')
+//	{
+//		// begin to receive data
+//		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+//	}
+//	else if(Rx_Data[0] == '\n' || Rx_Data[1] == '\n')
+//	{
+//		// received the end of the pixel data
+//		if (!storeCoordinate)
+//		{
+//			sendLocationReady = true;
+//		}
+//		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+//	}
+//	else
+//	{
+//		// store pixel data
+//		if (!sendLocationReady)
+//		{
+//			storeCoordinate = true;
+//		}
+//		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+//	}
 
 	//HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
 	//HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3); // red LED
@@ -221,6 +239,23 @@ struct BoundaryBox sendLocation(struct BoundaryBox previousLocation)
 
 	return currentLocation;
 }
+
+
+void SetRecievedCoordinates()
+{
+	for(uint8_t i = 0; i <= sizeof Rx_Data; i+=2)
+	{
+		if ( Rx_Data[i] == 0 &&  Rx_Data[i+1] == 0)
+		{
+			break;
+		}
+		struct Coordinate temp;
+		temp.height = Rx_Data[i];
+		temp.width = Rx_Data[i+1];
+		recievedCoordinates.push_back(temp);
+	}
+}
+
 
 /* USER CODE END 0 */
 
@@ -461,7 +496,7 @@ static void MX_DAC_Init(void)
   /* USER CODE BEGIN DAC_Init 2 */
 
   /* USER CODE END DAC_Init 2 */
-
+//
 }
 
 /**
@@ -1034,21 +1069,21 @@ void DefaultThread(void *argument)
   previousLocation.widthIndex = 0;
   previousLocation.height = 0;
   previousLocation.heightIndex = 0;
-  HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
+  HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
   for(;;)
   {
-	if (sendLocationReady && !storeCoordinate)
+	if (sendLocationReady)
 	{
+		SetRecievedCoordinates();
 		previousLocation = sendLocation(previousLocation);
 		recievedCoordinates.clear();
-		//pixelCount = 0;	// not using this anymore?
 		sendLocationReady = false;
 	}
 	else
 	{
 		 HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET);
 	}
-	osDelay(55);
+	osDelay(10);
 
   }
   /* USER CODE END 5 */
@@ -1065,25 +1100,26 @@ void MainThread(void *argument)
 {
   /* USER CODE BEGIN MainThread */
 
+
 	/* Infinite loop */
 	for(;;)
 	{
-		if (storeCoordinate && !sendLocationReady)
-		{
-			struct Coordinate temp;
-			temp.height = Rx_Data[0];
-			temp.width = Rx_Data[1];
-			recievedCoordinates.push_back(temp);
-			//pixelCount++; // not using this anymore?
-			storeCoordinate = false;
-			HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);// Red LED
-		}
-		else
-		{
-			HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);// Red LED
-		}
-		//HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3); // Red LED
-		osDelay(10);
+//		if (storeCoordinate && !sendLocationReady)
+//		{
+//			struct Coordinate temp;
+//			temp.height = Rx_Data[0];
+//			temp.width = Rx_Data[1];
+//			recievedCoordinates.push_back(temp);
+//			//pixelCount++; // not using this anymore?
+//			storeCoordinate = false;
+//			HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET);// Red LED
+//		}
+//		else
+//		{
+//			HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET);// Red LED
+//		}
+		HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3); // Red LED
+		osDelay(500);
 	}
   /* USER CODE END MainThread */
 }
