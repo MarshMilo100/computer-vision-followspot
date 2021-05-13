@@ -15,18 +15,26 @@ class SerialWrapper:
 
     def sendData(self, data):
         data += "\r\n".encode()
-        #startserialsend = time.time()
+        # self.ser.write("data".encode())
+        # data = get_sample_data()
         self.ser.write(data)
-        #self.ser.write("data".encode())
 
 
+def get_sample_data():
+    pixel_count = 12
+    difference_data = b''
+    for i in range(pixel_count):
+        difference_data += (100 + i).to_bytes(1, "little") # height
+        difference_data += (200 + i).to_bytes(1, "little") # width
+
+    data = "-2".encode()
+    data += str(len(difference_data) + 2).zfill(4).encode()
+    data += difference_data
+    data += "\r\n".encode()
+    return data
 
 def send_to_socket(serial, non_zero_difference):
     if non_zero_difference is not None:
-        #print(non_zero_difference)
-        #print("length: " + str(len(non_zero_difference)))
-        
-        #startloop = time.time()
         difference_data = b''
         if len(non_zero_difference) > MAX_PIXELS_TO_SEND:
             pixel_count = MAX_PIXELS_TO_SEND 
@@ -35,13 +43,11 @@ def send_to_socket(serial, non_zero_difference):
             pixel_count = len(non_zero_difference)
         
         for iDiff in range(pixel_count):
-            difference_data += non_zero_difference[iDiff][0][1]
-            difference_data += non_zero_difference[iDiff][0][0]
+            difference_data += non_zero_difference[iDiff][0][1] # height
+            difference_data += non_zero_difference[iDiff][0][0] # width
         msg = "-2".encode()
-        msg += str(len(difference_data) + 3).encode()
+        msg += str(len(difference_data) + 2).zfill(4).encode()
         msg += difference_data
-        #endloop = time.time()
-        #print("loop time: " + str(endloop - startloop))
         serial.sendData(msg)
 
 
