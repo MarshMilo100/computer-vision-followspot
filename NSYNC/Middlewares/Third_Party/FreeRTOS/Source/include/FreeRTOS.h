@@ -379,7 +379,7 @@ extern "C" {
 #endif
 
 #ifndef configCHECK_FOR_STACK_OVERFLOW
-	#define configCHECK_FOR_STACK_OVERFLOW 1
+	#define configCHECK_FOR_STACK_OVERFLOW 0
 #endif
 
 #ifndef configRECORD_STACK_HIGH_ADDRESS

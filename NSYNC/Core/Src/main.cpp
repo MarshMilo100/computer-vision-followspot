@@ -29,6 +29,7 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <iostream>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -89,10 +90,12 @@ const osMutexAttr_t myMutex01_attributes = {
 };
 /* USER CODE BEGIN PV */
 int count = 0;
-uint8_t Rx_Data[4006]; //(2000 pixels * 2 for width and height) + 6 header bytes
+const int RX_DATA_SIZE = 12;	//(2000 pixels * 2 for width and height) + 6 header bytes    (this has changed becasue sending less for now)
+uint8_t *Rx_Data;
 int pixelCount = 0;
 bool processPixels = false;
 bool sendCoordinate = false;
+int debuggCounter = 0;
 std::vector<struct Coordinate> recievedCoordinates;
 /* USER CODE END PV */
 
@@ -117,12 +120,13 @@ void StartSendPixels(void *argument);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 
-
 	if(Rx_Data[0] == '-' && Rx_Data[1] == '2')
 	{
 		uint8_t byteArray1[4] = {  Rx_Data[2], Rx_Data[3], Rx_Data[4],  Rx_Data[5] };
 		std::string s(reinterpret_cast<char*>(byteArray1), 4);
 		int pixleMsgSize = std::stoi(s, nullptr, 0);
+		delete Rx_Data;
+		Rx_Data = new uint8_t[pixleMsgSize];
 		HAL_UART_Receive_IT(&huart6, Rx_Data, pixleMsgSize);
 	}
 	else
@@ -131,34 +135,8 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 		HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
 	}
 
+	debuggCounter++;
 
-	// simplify this if block when the logic is sorted out
-//	if(Rx_Data[0] == '-' && Rx_Data[1] == '2')
-//	{
-//		// begin to receive data
-//		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
-//	}
-//	else if(Rx_Data[0] == '\n' || Rx_Data[1] == '\n')
-//	{
-//		// received the end of the pixel data
-//		if (!storeCoordinate)
-//		{
-//			processPixels = true;
-//		}
-//		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
-//	}
-//	else
-//	{
-//		// store pixel data
-//		if (!processPixels)
-//		{
-//			storeCoordinate = true;
-//		}
-//		HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
-//	}
-
-	//HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
-	HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3); // red LED
 
 }
 
@@ -247,9 +225,14 @@ struct BoundaryBox sendLocation(struct BoundaryBox previousLocation)
 
 void SetRecievedCoordinates()
 {
-	for(uint8_t i = 0; i <= sizeof Rx_Data; i+=2)
+
+	for(uint8_t i = 0; (i+2) <= sizeof Rx_Data; i+=2)
 	{
-		if ( Rx_Data[i] == 0 &&  Rx_Data[i+1] == 0)
+		if ( Rx_Data[i] == 0 && Rx_Data[i+1] == 0)
+		{
+			continue;
+		}
+		else if ( Rx_Data[i] == '\r' && Rx_Data[i+1] == '\n')
 		{
 			break;
 		}
@@ -258,6 +241,8 @@ void SetRecievedCoordinates()
 		temp.width = Rx_Data[i+1];
 		recievedCoordinates.push_back(temp);
 	}
+	std::fill(Rx_Data, Rx_Data+RX_DATA_SIZE, 0);
+	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET); // Red LED
 
 }
 /* USER CODE END 0 */
@@ -1071,7 +1056,7 @@ void StartRecievePixels(void *argument)
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 5 */
   //configCHECK_FOR_STACK_OVERFLOW = 1; (now this is set in FreeRTOS.h)
-
+  Rx_Data = new uint8_t[6];
   HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
   /* Infinite loop */
   for(;;)
@@ -1084,7 +1069,7 @@ void StartRecievePixels(void *argument)
 		osStatus_t status = osMutexAcquire(myMutex01Handle, osWaitForever);
 		SetRecievedCoordinates();
 		osDelay(100);
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET); // Red LED
+//		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET); // Red LED
 		status = osMutexRelease(myMutex01Handle);
 		if (status != osOK){
 			// fail! oh no
@@ -1094,7 +1079,9 @@ void StartRecievePixels(void *argument)
 			sendCoordinate = true;
 		}
 		processPixels = false;
+		delete Rx_Data;
 	}
+	debuggCounter = debuggCounter;
 	osDelay(100);
 
 	  //								 Mutex Name       Wait until the lock is obtained
@@ -1145,11 +1132,11 @@ void StartSendPixels(void *argument)
 		  }
 
 	  }
-//	  else
-//	  {
-//		  //HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_5); // Green LED
-//		  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET); // Green LED
-//	  }
+	  else
+	  {
+		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_5); // Green LED
+		  //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET); // Green LED
+	  }
 
 	  osDelay(200);
   }
