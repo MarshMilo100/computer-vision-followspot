@@ -1,0 +1,3 @@
+﻿  UDPServer.cpp
+C:\Users\Bobby\source\repos\UDPServer\UDPServer\UDPServer.cpp(20,1): warning C4326: return type of 'main' should be 'int' instead of 'void'
+  UDPServer.vcxproj -> C:\Users\Bobby\source\repos\UDPServer\Debug\UDPServer.exe

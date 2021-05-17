@@ -1,0 +1,14 @@
+﻿  UDPClient.cpp
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(120,26): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(121,28): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(133,16): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(134,17): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(136,33): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(137,34): warning C4244: '=': conversion from 'float' to 'int', possible loss of data
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(138,37): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(139,39): warning C4244: '=': conversion from 'double' to 'int', possible loss of data
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(222,15): warning C4474: 'printf' : too many arguments passed for format string
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(222,15): message : placeholders and their parameters expect 0 variadic arguments, but 1 were provided
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(245,9): warning C4477: 'printf' : format string '%s' requires an argument of type 'char *', but variadic argument 1 has type 'std::string *'
+C:\Users\Bobby\source\repos\UDPClient\UDPClient\UDPClient.cpp(156): warning C4172: returning address of local variable or temporary: coordinatePixels
+  UDPClient.vcxproj -> C:\Users\Bobby\source\repos\UDPClient\Debug\UDPClient.exe
