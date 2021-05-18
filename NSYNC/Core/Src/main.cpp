@@ -73,15 +73,27 @@ SRAM_HandleTypeDef hsram2;
 osThreadId_t RecievePixelsHandle;
 const osThreadAttr_t RecievePixels_attributes = {
   .name = "RecievePixels",
+  0,
+  0,
+  0,
+  0,
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal
+  .priority = (osPriority_t) osPriorityNormal,
+  0,
+  0
 };
 /* Definitions for SendPixels */
 osThreadId_t SendPixelsHandle;
 const osThreadAttr_t SendPixels_attributes = {
   .name = "SendPixels",
+  0,
+  0,
+  0,
+  0,
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityLow
+  .priority = (osPriority_t) osPriorityLow,
+  0,
+  0
 };
 /* Definitions for myMutex01 */
 osMutexId_t myMutex01Handle;
@@ -89,13 +101,17 @@ const osMutexAttr_t myMutex01_attributes = {
   .name = "myMutex01"
 };
 /* USER CODE BEGIN PV */
-int count = 0;
-const int RX_DATA_SIZE = 12;	//(2000 pixels * 2 for width and height) + 6 header bytes    (this has changed becasue sending less for now)
-uint8_t *Rx_Data;
-int pixelCount = 0;
-bool processPixels = false;
-bool sendCoordinate = false;
-int debuggCounter = 0;
+uint8_t* Rx_Data;
+uint8_t* Transfer_Data;
+uint8_t* Process_Data;
+int length = 0;
+int processLength = 0;
+
+bool recievingHeader = true;
+bool viewTransferData = false;
+
+int blinkSpeed = 200;
+
 std::vector<struct Coordinate> recievedCoordinates;
 /* USER CODE END PV */
 
@@ -120,24 +136,32 @@ void StartSendPixels(void *argument);
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 
-	if(Rx_Data[0] == '-' && Rx_Data[1] == '2')
+	if (!recievingHeader)
 	{
-		uint8_t byteArray1[4] = {  Rx_Data[2], Rx_Data[3], Rx_Data[4],  Rx_Data[5] };
-		std::string s(reinterpret_cast<char*>(byteArray1), 4);
-		int pixleMsgSize = std::stoi(s, nullptr, 0);
-		delete Rx_Data;
-		Rx_Data = new uint8_t[pixleMsgSize];
-		HAL_UART_Receive_IT(&huart6, Rx_Data, pixleMsgSize);
+		// Start the process to transfer the data to the transfer data pointer
+		// Also setup for the next header
+		recievingHeader = !recievingHeader;
+		osStatus_t status = osMutexAcquire(myMutex01Handle, osWaitForever);
+		if(Transfer_Data != 0)
+		{
+			delete[] Transfer_Data;
+		}
+		Transfer_Data = Rx_Data;
+		status = osMutexRelease(myMutex01Handle);
+		Rx_Data = new uint8_t[2];
+		viewTransferData = true;
 	}
 	else
 	{
-		processPixels = true;
-		HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
+		HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3);
+		// Setup to receive the data
+		recievingHeader = !recievingHeader;
+		length = 0;
+		length = (length << 8) + (int)(*(Rx_Data+1));
+		length = (length << 8) + (int)(*Rx_Data);
+		delete[] Rx_Data;
+		Rx_Data = new uint8_t[length * 4];
 	}
-
-	debuggCounter++;
-
-
 }
 
 
@@ -146,14 +170,15 @@ void vApplicationStackOverflowHook( TaskHandle_t xTask, signed char *pcTaskName 
 
 struct Coordinate
 {
-    int width, height;
+    uint16_t width = 0, height = 0;
 };
 
 struct BoundaryBox
 {
-    int widthIndex, heightIndex;
-    int width, height;
+	uint16_t widthIndex, heightIndex;
+	uint16_t width, height;
 };
+Coordinate** coordinates;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -222,28 +247,37 @@ struct BoundaryBox sendLocation(struct BoundaryBox previousLocation)
 	return currentLocation;
 }
 
+void FreeCoordinates()
+{
+	for(int i = 0; i < processLength; i++)
+	{
+		delete coordinates[i];
+	}
+	delete[] coordinates;
+}
 
 void SetRecievedCoordinates()
 {
-
-	for(uint8_t i = 0; (i+2) <= sizeof Rx_Data; i+=2)
+	osStatus_t status = osMutexAcquire(myMutex01Handle, osWaitForever);
+	Process_Data = Transfer_Data;
+	processLength = length;
+	Transfer_Data = 0;
+	status = osMutexRelease(myMutex01Handle);
+	coordinates = new Coordinate*[processLength];
+	for(int i = 0; i < processLength; i++)
 	{
-		if ( Rx_Data[i] == 0 && Rx_Data[i+1] == 0)
-		{
-			continue;
-		}
-		else if ( Rx_Data[i] == '\r' && Rx_Data[i+1] == '\n')
-		{
-			break;
-		}
-		struct Coordinate temp;
-		temp.height = Rx_Data[i];
-		temp.width = Rx_Data[i+1];
-		recievedCoordinates.push_back(temp);
-	}
-	std::fill(Rx_Data, Rx_Data+RX_DATA_SIZE, 0);
-	HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET); // Red LED
+		coordinates[i] = new Coordinate();
+		coordinates[i]->width =  (coordinates[i]->width << 8) + (uint16_t)(*(Process_Data + (i * 4) + 1));
+		coordinates[i]->width =  (coordinates[i]->width << 8) + (uint16_t)(*(Process_Data + (i * 4)));
 
+		coordinates[i]->height =  (coordinates[i]->height << 8) + (uint16_t)(*(Process_Data + (i * 4) + 3));
+		coordinates[i]->height =  (coordinates[i]->height << 8) + (uint16_t)(*(Process_Data + (i * 4) + 2));
+		Coordinate c = *(*(coordinates + i));
+		int x = 5;
+	}
+	FreeCoordinates();
+	delete[] Process_Data;
+	HAL_GPIO_TogglePin(GPIOE, GPIO_PIN_3);
 }
 /* USER CODE END 0 */
 
@@ -1052,51 +1086,31 @@ static void MX_FSMC_Init(void)
 /* USER CODE END Header_StartRecievePixels */
 void StartRecievePixels(void *argument)
 {
-  /* init code for USB_HOST */
-  MX_USB_HOST_Init();
-  /* USER CODE BEGIN 5 */
-  //configCHECK_FOR_STACK_OVERFLOW = 1; (now this is set in FreeRTOS.h)
-  Rx_Data = new uint8_t[6];
-  HAL_UART_Receive_IT(&huart6, Rx_Data, 6);
-  /* Infinite loop */
-  for(;;)
-  {
-	if (processPixels)
+	/* init code for USB_HOST */
+	MX_USB_HOST_Init();
+	/* USER CODE BEGIN 5 */
+	//configCHECK_FOR_STACK_OVERFLOW = 1; (now this is set in FreeRTOS.h)
+
+	/* Infinite loop */
+	Rx_Data = new uint8_t[2];
+	for(;;)
 	{
-		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_SET); // Red LED
-		// this mutex is to lock the recievedCoordinates list
-		// this is where it is written to
-		osStatus_t status = osMutexAcquire(myMutex01Handle, osWaitForever);
-		SetRecievedCoordinates();
-		osDelay(100);
-//		HAL_GPIO_WritePin(GPIOE, GPIO_PIN_3, GPIO_PIN_RESET); // Red LED
-		status = osMutexRelease(myMutex01Handle);
-		if (status != osOK){
-			// fail! oh no
+		if (recievingHeader)
+		{
+			HAL_UART_Receive_IT(&huart6, Rx_Data, 2);
 		}
 		else
 		{
-			sendCoordinate = true;
+			HAL_UART_Receive_IT(&huart6, Rx_Data, length * 4);
 		}
-		processPixels = false;
-		delete Rx_Data;
+		if (viewTransferData)
+		{
+			SetRecievedCoordinates();
+			viewTransferData = false;
+		}
+		osDelay(5);
 	}
-	debuggCounter = debuggCounter;
-	osDelay(100);
-
-	  //								 Mutex Name       Wait until the lock is obtained
-//	  osStatus_t status = osMutexAcquire(myMutex01Handle, osWaitForever);
-//	  count = count + 1;
-//	  char buff[20];
-//	  sprintf(buff, "Task 1: %08d\n", count);
-//	  HAL_UART_Transmit(&huart6, buff, 20, 10);
-//	  status = osMutexRelease(myMutex01Handle);
-//	  if (status != osOK){
-//		  // fail! oh no
-//	  }
-//	  osDelay(200);
-  }
-  /* USER CODE END 5 */
+	/* USER CODE END 5 */
 }
 
 /* USER CODE BEGIN Header_StartSendPixels */
@@ -1109,36 +1123,12 @@ void StartRecievePixels(void *argument)
 void StartSendPixels(void *argument)
 {
   /* USER CODE BEGIN StartSendPixels */
-  BoundaryBox previousLocation = BoundaryBox();	 // get a default boundary box to start
-  previousLocation.width = 0;
-  previousLocation.widthIndex = 0;
-  previousLocation.height = 0;
-  previousLocation.heightIndex = 0;
+
   /* Infinite loop */
   for(;;)
   {
-	  if(sendCoordinate)
-	  {
-		  // this mutex is to lock the recievedCoordinates list
-		  // this is where it is written to
-		  osStatus_t status = osMutexAcquire(myMutex01Handle, osWaitForever);
-		  previousLocation = sendLocation(previousLocation);
-		  recievedCoordinates.clear();
-		  sendCoordinate = false;
-		  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET); // Green LED
-		  status = osMutexRelease(myMutex01Handle);
-		  if (status != osOK){
-			  // fail! oh no
-		  }
-
-	  }
-	  else
-	  {
-		  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_5); // Green LED
-		  //HAL_GPIO_WritePin(GPIOC, GPIO_PIN_5, GPIO_PIN_RESET); // Green LED
-	  }
-
-	  osDelay(200);
+	  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_5);
+	  osDelay(blinkSpeed);
   }
   /* USER CODE END StartSendPixels */
 }

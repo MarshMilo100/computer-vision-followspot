@@ -3,9 +3,10 @@ import time
 import socket
 import serial
 import numpy
+import random
 
 
-PORT = 'COM3'
+PORT = 'COM5'
 BUAD_RATE = 115200
 MAX_PIXELS_TO_SEND = 2000
 
@@ -14,13 +15,44 @@ class SerialWrapper:
         self.ser = serial.Serial(device, BUAD_RATE)
 
     def sendData(self, data):
-        data += "\r\n".encode()
+        # data += "\r\n".encode()
         # self.ser.write("data".encode())
-        # data = get_sample_data()
+        header, data = get_sample_data()
+        # print(data)
+        self.ser.write(header)
+        time.sleep(0.10)
         self.ser.write(data)
+        time.sleep(0.015)
 
 
 def get_sample_data():
+    length = 100
+    header = (length).to_bytes(2, "little")
+    
+    print("Length: ", length)
+    print("")
+    
+    width = random.randint(0, 640)
+    height = random.randint(0, 480)
+    
+    data = width.to_bytes(2, "little")  # Width
+    data += height.to_bytes(2, "little") # Height
+    
+    # print("Coordinate: (", width, ",", height, ")") 
+    for x in range(1, length):
+        width = random.randint(0, 640)
+        height = random.randint(0, 480)
+        
+        data += width.to_bytes(2, "little") # Width
+        data += height.to_bytes(2, "little") # Height
+        
+        # print("Coordinate: (", width, ",", height, ")") 
+    
+    return header, data
+    
+    
+
+    """
     pixel_count = 12
     difference_data = b''
     for i in range(pixel_count):
@@ -32,6 +64,7 @@ def get_sample_data():
     data += difference_data
     data += "\r\n".encode()
     return data
+    """
 
 def send_to_socket(serial, non_zero_difference):
     if non_zero_difference is not None:
@@ -79,7 +112,12 @@ def read_camera_data(serial):
 
 if __name__ == '__main__':
     serial = SerialWrapper(PORT)
-    read_camera_data(serial)
+    
+    while True:
+        time.sleep(0.001)
+        print("Sending")
+        serial.sendData(None)
+    # read_camera_data(serial)
 
         
         
