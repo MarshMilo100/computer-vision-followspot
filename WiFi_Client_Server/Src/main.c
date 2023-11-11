@@ -46,20 +46,63 @@
 #include "main.h"
 /* Private defines -----------------------------------------------------------*/
 /* Update SSID and PASSWORD with own Access point settings */
-#define SSID     "CenturyLink1087"
-#define PASSWORD "cecc47c8waedfb"
+#define SSID     "CenturyLink4234"
+#define PASSWORD "fuckyoutom"
 
 #define LCD_USE
 
 #define CONNECTION_TRIAL_MAX          10
 /* Private variables ---------------------------------------------------------*/
-const uint8_t RemoteIP[] = {127,0,0, 1};
+const uint8_t RemoteIP[] = {192, 168, 0, 105};
 uint8_t RxData [500];
 
-uint8_t TxData[] = "STM32 : Hello!\n";
+uint8_t* TxData[638] = "STM32 : Hello!\n";
 uint16_t RxLen;
 uint8_t  MAC_Addr[6]; 
 uint8_t  IP_Addr[4]; 
+
+#ifdef __GNUC__
+#define PACK( __Declaration__ ) __Declaration__ __attribute__((__packed__))
+#endif
+
+typedef union {
+  PACK(struct {
+    PACK(struct { /* ACN Root Layer: 38 bytes */
+      uint16_t preamble_size;    /* Preamble Size */
+      uint16_t postamble_size;   /* Post-amble Size */
+      uint8_t  acn_pid[12];      /* ACN Packet Identifier */
+      uint16_t flength;          /* Flags (high 4 bits) & Length (low 12 bits) */
+      uint32_t vector;           /* Layer Vector */
+      uint8_t  cid[16];          /* Component Identifier (UUID) */
+    }) root;
+
+    PACK(struct { /* Framing Layer: 77 bytes */
+      uint16_t flength;          /* Flags (high 4 bits) & Length (low 12 bits) */
+      uint32_t vector;           /* Layer Vector */
+      uint8_t  source_name[64];  /* User Assigned Name of Source (UTF-8) */
+      uint8_t  priority;         /* Packet Priority (0-200, default 100) */
+      uint16_t reserved;         /* Reserved (should be always 0) */
+      uint8_t  seq_number;       /* Sequence Number (detect duplicates or out of order packets) */
+      uint8_t  options;          /* Options Flags (bit 7: preview data, bit 6: stream terminated) */
+      uint16_t universe;         /* DMX Universe Number */
+    }) frame;
+
+    PACK(struct { /* Device Management Protocol (DMP) Layer: 523 bytes */
+      uint16_t flength;          /* Flags (high 4 bits) / Length (low 12 bits) */
+      uint8_t  vector;           /* Layer Vector */
+      uint8_t  type;             /* Address Type & Data Type */
+      uint16_t first_addr;       /* First Property Address */
+      uint16_t addr_inc;         /* Address Increment */
+      uint16_t prop_val_cnt;     /* Property Value Count (1 + number of slots) */
+      uint8_t  prop_val[513];    /* Property Values (DMX start code + slots data) */
+    }) dmp;
+  });
+
+  uint8_t raw[638]; /* raw buffer view: 638 bytes */
+} e131_packet_t;
+
+
+
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 

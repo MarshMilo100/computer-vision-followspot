@@ -24,6 +24,16 @@ class SerialWrapper:
         self.ser.write(data)
         time.sleep(0.015)
 
+    def recData(self, data):
+        # data += "\r\n".encode()
+        # self.ser.write("data".encode())
+        header, data = get_sample_data()
+        # print(data)
+        self.ser.
+        time.sleep(0.10)
+        self.ser.write(data)
+        time.sleep(0.015)
+
 
 def get_sample_data():
     length = 100
