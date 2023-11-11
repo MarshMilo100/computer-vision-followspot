@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30104.148
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sacn_test", "sacn_test\sacn_test.vcxproj", "{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}.Debug|x64.ActiveCfg = Debug|x64
+		{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}.Debug|x64.Build.0 = Debug|x64
+		{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}.Debug|x86.ActiveCfg = Debug|Win32
+		{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}.Debug|x86.Build.0 = Debug|Win32
+		{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}.Release|x64.ActiveCfg = Release|x64
+		{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}.Release|x64.Build.0 = Release|x64
+		{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}.Release|x86.ActiveCfg = Release|Win32
+		{FB58272E-51C4-4A4F-A1BE-35DC5D26B333}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {196EBFF3-5B30-44EA-9550-2CAEDB8FDFA4}
+	EndGlobalSection
+EndGlobal
