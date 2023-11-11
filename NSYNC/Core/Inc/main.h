@@ -28,7 +28,9 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+
 #include "stm32f4xx_hal.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -291,6 +293,8 @@ void Error_Handler(void);
 #ifdef __cplusplus
 }
 #endif
+
+
 
 #endif /* __MAIN_H */
 

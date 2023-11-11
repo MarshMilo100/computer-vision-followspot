@@ -69,8 +69,8 @@ NSYNC.bin \
 all: NSYNC.elf secondary-outputs
 
 # Tool invocations
-NSYNC.elf: $(OBJS) $(USER_OBJS) C:\Users\Nathan\STM32CubeIDE\workspace_1.4.0\NSYNC\STM32F413ZHTX_FLASH.ld
-	arm-none-eabi-g++ -o "NSYNC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Nathan\STM32CubeIDE\workspace_1.4.0\NSYNC\STM32F413ZHTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NSYNC.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+NSYNC.elf: $(OBJS) $(USER_OBJS) C:\Users\Zach\Documents\NSYNC\nsync\NSYNC\STM32F413ZHTX_FLASH.ld
+	arm-none-eabi-g++ -o "NSYNC.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\Users\Zach\Documents\NSYNC\nsync\NSYNC\STM32F413ZHTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NSYNC.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
