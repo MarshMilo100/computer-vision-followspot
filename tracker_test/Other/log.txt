@@ -1,0 +1,9 @@
+ID: 1 crossed going down at Sun Feb  7 19:54:06 2021
+ID: 1 crossed going down at Sun Feb  7 19:54:17 2021
+ID: 10 crossed going down at Sun Feb  7 19:54:21 2021
+ID: 16 crossed going down at Sun Feb  7 19:54:53 2021
+ID: 45 crossed going down at Sun Feb  7 19:56:30 2021
+ID: 49 crossed going down at Sun Feb  7 19:57:44 2021
+ID: 50 crossed going down at Sun Feb  7 19:59:50 2021
+ID: 52 crossed going down at Sun Feb  7 19:59:50 2021
+ID: 61 crossed going down at Sun Feb  7 20:00:03 2021
