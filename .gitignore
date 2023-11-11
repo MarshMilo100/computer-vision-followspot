@@ -102,6 +102,8 @@ local.properties
 *.pydevproject
 .idea
 .project
+.vs
+*__pycache__/
 
 # CDT-specific (C/C++ Development Tooling)
 .cproject
